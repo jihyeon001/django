@@ -2,19 +2,17 @@ import json
 import os
 import logging
 import time
-from datetime                import datetime
-from logging.handlers        import RotatingFileHandler
+from datetime              import datetime
+from logging.handlers      import RotatingFileHandler
+from rest_framework.views  import exception_handler
+from .outbounds            import AWSS3Client, SlackIncomingWebhooks
 
-from rest_framework.views    import exception_handler
+ACCESS_LOGER_NAME = 'access'
+ERROR_LOGER_NAME = 'error'
+SERVICE_NAME = 'service'
+ENVIRONMENT = 'local'
+VERSION = '210915'
 
-from inheritance.outbounds   import AWSS3Client, SlackIncomingWebhooks
-from config.const            import (
-    ACCESS_LOGER_NAME,
-    ERROR_LOGER_NAME,
-    SERVICE_NAME,
-    ENVIRONMENT, 
-    VERSION,
-)
 
 def get_server_id():
     '''
