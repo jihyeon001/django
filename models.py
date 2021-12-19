@@ -35,7 +35,7 @@ class UserManager(BaseUserManager):
 
 class BaseModelManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset() #.filter(active=True)
+        return super().get_queryset() #.filter(is_active=True)
 
 class BaseModel(models.Model):
     """

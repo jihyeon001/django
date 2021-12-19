@@ -1,2 +1,2 @@
 # django
-django 기록
+django 삽질 기록
