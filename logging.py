@@ -85,8 +85,9 @@ def error_exception_handler(exc, context):
 
     server_id = get_server_id()
     contents = (
-        f'{SERVICE_NAME}|{ENVIRONMENT}-{VERSION}|{server_id}|'
-        f'{request.method}|{request.path}] {message}'
+        f'{SERVICE_NAME}|{ENVIRONMENT}-{VERSION}|'
+        f'{server_id}|{request.method}|{request.path}] '
+        f'{message}'
     )
     web_hooks = SlackIncomingWebhooks(contents=contents)
     web_hooks.start()
@@ -103,7 +104,11 @@ class S3RotatingFileHandler(RotatingFileHandler):
 
     def get_s3_access_log_filename(self):
         now = datetime.now().strftime('%Y%m%d-%H%M%S')
-        return f'access_log/{SERVICE_NAME}-{ENVIRONMENT}-{VERSION}-{self.SERVER_ID}-{now}.log'
+        return (
+            f'access_log/{SERVICE_NAME}-'
+            f'{ENVIRONMENT}-{VERSION}-'
+            f'{self.SERVER_ID}-{now}.log'
+        )
 
     def doRollover(self):
         """

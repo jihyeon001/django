@@ -1,6 +1,6 @@
 import requests
 import threading
-
+import json
 from .exceptions        import InternalServerErrorException
 
 SLACK = {}
@@ -23,4 +23,6 @@ class SlackIncomingWebhooks(threading.Thread):
                 headers={'Content-Type':'application/json'}
             )
         except Exception as e:
-            raise InternalServerErrorException(message=f'{self.__class__.__name__} {e}')
+            raise InternalServerErrorException(
+                message=f'{self.__class__.__name__} {e}'
+            )
