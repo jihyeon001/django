@@ -2,16 +2,17 @@
 django 삽질 기록
 
 ## Dependency
-- Django
-- Django REST Framework
-- Requests
+- [Django](https://github.com/django/django)
+- [Django-REST-Framework](https://github.com/encode/django-rest-framework)
+- [rest-framework-jwt](https://github.com/jpadilla/django-rest-framework-jwt)
+- [Requests](https://github.com/psf/requests)
 
 ## Source 구조
-
 ~~~sh
 ├─Github
-│ README.md
 │ .gitignore
+│ .gitmessage.txt
+│ README.md
 │ exceptions.py
 │ logging.py
 │ models.py
