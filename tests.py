@@ -2,7 +2,6 @@ from collections     import OrderedDict
 from rest_framework  import serializers
 from datetime        import datetime
 
-PRIMARY_KEY_NAME = 'id'
 class TestRequest:
     def __init__(self, data):
         self.data = data

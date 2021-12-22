@@ -1,7 +1,7 @@
 import requests
 import threading
 import json
-from .exceptions        import InternalServerErrorException
+from .exceptions  import InternalServerErrorException
 
 SLACK = {}
 
@@ -13,6 +13,9 @@ class SlackIncomingWebhooks(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
+        """
+            비동기 처리
+        """
         try:
             payload = {
                 'text':f':rotating_light:[{self.contents}'

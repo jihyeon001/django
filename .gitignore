@@ -1,6 +1,7 @@
 go_over/
 legacy/
 .gitignore
+.gitmessage.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

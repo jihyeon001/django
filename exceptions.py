@@ -32,3 +32,4 @@ class InternalServerErrorException(BaseDetailException):
     status_code    = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = 'internal server error'
     default_code   = 'InternalServerError'
+

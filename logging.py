@@ -66,18 +66,8 @@ class AccessLoggingMiddleware:
 def error_exception_handler(exc, context):
     '''
         Exception 로깅, 슬랙 (5ms 소요)
-
-        1. AccessLoggingMiddleware와의 분리
-            DRF의 APIException과 Django의 exception
-            Response가 각각 Response, HttpResponse로 
-            HttpResponse의 경우 내부 메시지를 가져오려면 후처리가 필요
-            따라서 custom handler로 분리
-            exception_handler에서 APIException이 아닐경우 None을 반환하는 로직을 활용
-            동일한 포맷(예외클래스명, 상세메시지)의 메시지로 로깅
-
-        2. slack
-            실시간 에러를 확인하기 위해 적용,
-            threading 모듈로 비동기처리
+        - DRF의 APIException과 Django의 exception 포맷이 달라 후처리
+        - slack으로 실시간 에러를 확인
     '''
     request = context['request']
     headers = {}
