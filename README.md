@@ -5,7 +5,8 @@ django 삽질 기록
 - [Django](https://github.com/django/django)
 - [Django-REST-Framework](https://github.com/encode/django-rest-framework)
 - [rest-framework-jwt](https://github.com/jpadilla/django-rest-framework-jwt)
-- [Requests](https://github.com/psf/requests)
+- [requests](https://github.com/psf/requests)
+- [boto3](https://github.com/boto/boto3)
 
 ## Source 구조
 ~~~sh
@@ -14,9 +15,9 @@ django 삽질 기록
 │ .gitmessage.txt
 │ README.md
 │ exceptions.py
-│ logging.py
-│ models.py
-│ outbounds.py
-│ tests.py
+│ logging.py         # access log, log handler
+│ models.py          # model의 baseclass
+│ outbounds.py       # 외부 API
+│ tests.py           # test의 baseclass
 │ viewsets.py
 ~~~

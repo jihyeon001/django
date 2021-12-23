@@ -50,12 +50,10 @@ class BaseModel(models.Model):
         Model_Objects = cls._default_manager
         many_to_one, many_to_many, reverse_relations = cls.get_relation_info()
 
-        prefetch_fields = [field for field, _ in reverse_relations.items() \
-                                    if not field in excludes]
-        prefetch_fields += [field for field, relation_indo in many_to_many.items() \
-                                    if not field in excludes and relation_indo.to_many]
-        select_fields = [field for field, relation_indo in many_to_one.items() \
-                                    if not field in excludes and not relation_indo.to_many]
+        prefetch_fields = [field for field, _ in reverse_relations.items() if not field in excludes]
+        prefetch_fields += [field for field, _ in many_to_many.items() if not field in excludes]
+        select_fields = [field for field, _ in many_to_one.items() if not field in excludes]
+        
         if select_fields:
             Model_Objects = Model_Objects.select_related(*select_fields)
         if prefetch_fields:

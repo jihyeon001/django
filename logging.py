@@ -111,25 +111,24 @@ def error_exception_handler(exc, context):
     return Response(data, status=status_code, headers=headers)
 
 class S3RotatingFileHandler(RotatingFileHandler):
-    '''
-        RotatingFileHandler를 활용하여 동일한 설정 값으로
-        Access Log들을 S3에 주기적으로 백업        
-    '''
-    content_type = 'text/plain'
+    ACCESS_LOG_DIR = 'access_log'
+    DEFAULT_CONTENT_TYPE = 'text/plain'
 
     def doRollover(self):
         """
-        Do a rollover, as described in __init__().
+            RotatingFileHandler를 활용하여 동일한 설정 값으로
+            Access Log들을 S3에 주기적으로 백업
         """
         aws_s3_client = AWSS3Client()
         file_object = open(self.baseFilename, mode='rb')
         aws_s3_client.upload(
             file_object=file_object, 
-            content_type=self.content_type,
+            content_type=self.DEFAULT_CONTENT_TYPE,
             object_key=(
-                'access_log/{service_name}-'
+                '{access_log_dir}/{service_name}-'
                 '{environment}-{version}-'
                 '{server_id}-{now}.log'.format(
+                    access_log_dir=self.ACCESS_LOG_DIR,
                     service_name=SERVICE_NAME,
                     environment=ENVIRONMENT,
                     version=VERSION,
