@@ -4,8 +4,8 @@ import json
 import boto3
 from .exceptions  import InternalServerErrorException
 
-SLACK = {}
-AWS_S3 = {}
+SLACK: dict
+AWS_S3: dict
 class SlackIncomingWebhooks(threading.Thread): 
     url = SLACK['URL']
 
@@ -34,8 +34,8 @@ class AwsS3Client:
         aws_access_key_id     = AWS_S3['ACCESS_ID'],
         aws_secret_access_key = AWS_S3['ACCESS_SECRET'],
     )
-    bucket  = AWS_S3['BUCKET_NAME']
-    address = AWS_S3["ADDRESS"]
+    BUCKET_NAME  = AWS_S3['BUCKET_NAME']
+    ADDRESS = AWS_S3["ADDRESS"]
 
     def upload(self, file_object, content_type: str, key: str):
         try:
@@ -45,7 +45,7 @@ class AwsS3Client:
                 ExtraArgs = {'ContentType': getattr(
                     file_object, 'content_type', content_type
                 )},
-                Bucket    = self.bucket
+                Bucket    = self.BUCKET_NAME
             )
         except Exception as e:
             raise InternalServerErrorException(
@@ -54,9 +54,9 @@ class AwsS3Client:
 
     def delete(self, image_url):
         try:
-            key = image_url.replace(f'{self.address}', '')
+            key = image_url.replace(f'{self.ADDRESS}', '')
             self.s3_client.delete_object(
-                Bucket = self.bucket,
+                Bucket = self.BUCKET_NAME,
                 Key    = key,
             )
         except Exception as e:

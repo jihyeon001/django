@@ -7,8 +7,8 @@ from django.db               import models
 from django.utils.safestring import mark_safe
 from django.core.validators  import MaxValueValidator
 
-MAX_UNIX_TIME_STAMP = 2147483647
-MODEL_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+MAX_UNIX_TIME_STAMP: int = 2147483647
+MODEL_DATETIME_FORMAT : str = '%Y-%m-%d %H:%M:%S'
 
 class BaseModelManager(models.Manager):
     def get_queryset(self):
