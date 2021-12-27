@@ -44,57 +44,68 @@ class ImageResizeUpload:
         self.base_key = f'{directory}/{url_generator}/{url_generator[:8]}'
         self.image = image
 
-    def _get_src_image(self):
-        """
-            source image를 binary로 읽고 난후 decode
-        """
+        # source image를 binary로 읽고 난후 decode
         encoded_image = numpy.fromstring(self.image.read(), dtype=numpy.uint8)
-        return cv2.imdecode(encoded_image, cv2.IMREAD_COLOR)
+        self.src_image = cv2.imdecode(encoded_image, cv2.IMREAD_COLOR)
 
-    def _get_thumb_height(self, src_image) -> int:
+    def _get_thumb_height(self) -> int:
         """
             source image의 크기로 계산된 비율로 thumbnail image의 높이를 산출
         """
-        height, width, _ = src_image.shape
+        height, width, _ = self.src_image.shape
         ratio = float(height) / float(width)
         return round(ratio * THUMBNAIL_WIDTH)
 
-    def _get_thumbnail_image(self, src_image):
+    def _get_thumbnail_image(self):
         """
             resize image 
         """
-        thumb_height = self._get_thumb_height(src_image=src_image)
-        return cv2.resize(src_image, dsize=(THUMBNAIL_WIDTH, thumb_height), interpolation=cv2.INTER_LINEAR)
+        thumb_height = self._get_thumb_height()
+        return cv2.resize(self.src_image, dsize=(THUMBNAIL_WIDTH, thumb_height), interpolation=cv2.INTER_LINEAR)
+
+
+    def _get_decoded_image(self):
+        """
+            cv2.imdecode()를 거친 image를 반환
+        """
+        if is_thumbnail:
+            return self._get_thumbnail_image()
+        return self.src_image
+
+
+    def _get_image_key(self, is_thumbnail=False):
+        """
+            S3의 경로를 반환
+        """
+        if is_thumbnail:
+            return self.base_key + self.THUMBNAIL_IMAGE_KEY_SUFFIX
+        return self.base_key + self.SOURCE_IMAGE_KEY_SUFFIX
+
 
     def _start_upload_thread(self, image_bytes: bytes, image_key: str) -> str:
         """
-            image를 s3에 업로드 하고, image_url을 반환
+            image를 s3에 업로드 하고, bucket address를 반환
         """
         image_uploader = AwsS3ImageUploader(image_bytes, image_key)
         upload_thread = threading.Thread(
             target=image_uploader.upload, 
             args=()
         )
-
-        address = image_uploader.aws_s3_client.ADDRESS
         upload_thread.start()
-        return f'{address}/{image_key}'
+        return image_uploader.aws_s3_client.ADDRESS
 
-    def _get_image_data(self, image, is_thumbnail=False) -> dict:
+    def _get_image_data(self, is_thumbnail=False) -> dict:
         """
             작업 수행 후 image data를 반환
         """
-        if is_thumbnail:
-            image = self._get_thumbnail_image(src_image=image)
-            image_key = self.base_key + self.THUMBNAIL_IMAGE_KEY_SUFFIX
-        else:
-            image_key = self.base_key + self.SOURCE_IMAGE_KEY_SUFFIX
-        
-        height, width, _ = image.shape
-        image_bytes = cv2.imencode('.jpg', image)[1].tobytes()
-        image_url = self._start_upload_thread(image_bytes=image_bytes, image_key=image_key)
+        image_key = self._get_image_key(is_thumbnail=is_thumbnail)
+        decoded_image = self._get_decoded_image(is_thumbnail=is_thumbnail)
+        height, width, _ = decoded_image.shape
+        image_bytes = cv2.imencode('.jpg', decoded_image)[1].tobytes()
+        address = self._start_upload_thread(image_bytes=image_bytes, image_key=image_key)
+
         return {
-            'image_url'    : image_url,
+            'image_url'    : f'{address}/{image_key}',
             'height'       : height,
             'width'        : width,
             'is_thumbnail' : is_thumbnail
@@ -102,10 +113,9 @@ class ImageResizeUpload:
 
     def get_image_datas(self) -> list:
         try:
-            src_image = self._get_src_image()
             return [
-                self._get_image_data(image=src_image), 
-                self._get_image_data(image=src_image, is_thumbnail=True)
+                self._get_image_data(), 
+                self._get_image_data(is_thumbnail=True)
             ]
         except Exception as e:
             raise InternalServerErrorException(
