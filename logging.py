@@ -113,7 +113,7 @@ class S3RotatingFileHandler(RotatingFileHandler):
     ACCESS_LOG_DIR = 'access_log'
     DEFAULT_CONTENT_TYPE = 'text/plain'
 
-    def doRollover(self):
+    def upload_to_s3(self):
         """
             RotatingFileHandler를 활용하여 동일한 설정 값으로
             Access Log들을 S3에 주기적으로 백업
@@ -136,5 +136,8 @@ class S3RotatingFileHandler(RotatingFileHandler):
                 )
             ),
         )
+
+    def doRollover(self):
+        self.upload_to_s3()
         super().doRollover()
 

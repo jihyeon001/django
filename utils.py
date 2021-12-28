@@ -64,7 +64,7 @@ class ImageResizeUpload:
         return cv2.resize(self.src_image, dsize=(THUMBNAIL_WIDTH, thumb_height), interpolation=cv2.INTER_LINEAR)
 
 
-    def _get_decoded_image(self):
+    def _get_decoded_image(self, is_thumbnail: bool):
         """
             cv2.imdecode()를 거친 image를 반환
         """
@@ -73,7 +73,7 @@ class ImageResizeUpload:
         return self.src_image
 
 
-    def _get_image_key(self, is_thumbnail=False):
+    def _get_image_key(self, is_thumbnail: bool):
         """
             S3의 경로를 반환
         """
@@ -94,31 +94,37 @@ class ImageResizeUpload:
         upload_thread.start()
         return image_uploader.aws_s3_client.ADDRESS
 
-    def _get_image_data(self, is_thumbnail=False) -> dict:
+    def get_image_data(self, is_thumbnail: bool) -> dict:
         """
             작업 수행 후 image data를 반환
         """
-        image_key = self._get_image_key(is_thumbnail=is_thumbnail)
-        decoded_image = self._get_decoded_image(is_thumbnail=is_thumbnail)
-        height, width, _ = decoded_image.shape
-        image_bytes = cv2.imencode('.jpg', decoded_image)[1].tobytes()
-        address = self._start_upload_thread(image_bytes=image_bytes, image_key=image_key)
-
-        return {
-            'image_url'    : f'{address}/{image_key}',
-            'height'       : height,
-            'width'        : width,
-            'is_thumbnail' : is_thumbnail
-        }
-
-    def get_image_datas(self) -> list:
         try:
-            return [
-                self._get_image_data(), 
-                self._get_image_data(is_thumbnail=True)
-            ]
+            image_key = self._get_image_key(is_thumbnail=is_thumbnail)
+            decoded_image = self._get_decoded_image(is_thumbnail=is_thumbnail)
+            height, width, _ = decoded_image.shape
+            image_bytes = cv2.imencode('.jpg', decoded_image)[1].tobytes()
+            address = self._start_upload_thread(image_bytes=image_bytes, image_key=image_key)
+
+            return {
+                'image_url'    : f'{address}/{image_key}',
+                'height'       : height,
+                'width'        : width,
+                'is_thumbnail' : is_thumbnail
+            }
         except Exception as e:
             raise InternalServerErrorException(
                 message=f'{self.__class__.__name__} {e}'
             )
+
+    def ex(self) -> list:
+        """
+            - 사용 예시 - 
+                원본과 썸네일 이미지의
+                동일한 인스턴스 객체를 통해 가져와 DB에 저장
+        """
+        return [
+            self.get_image_data(is_thumbnail=False), 
+            self.get_image_data(is_thumbnail=True)
+        ]
+
 

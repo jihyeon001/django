@@ -15,12 +15,13 @@ django 삽질 기록
 ├─Github
 │ .gitignore
 │ .gitmessage.txt
+│ base_model.py      # model의 baseclass
+│ base_test.py       # service test의 baseclass
+│ base_viewset.py
 │ README.md
 │ exceptions.py
 │ logging.py         # access log, log handler
-│ models.py          # model의 baseclass
 │ outbounds.py       # 외부 API
-│ tests.py           # test의 baseclass
+│ #services.py       # service layer - PR 도전중
 │ utils.py           # image uploader 등
-│ viewsets.py
 ~~~
