@@ -17,26 +17,24 @@ VERSION: str
 LOG_DATETIME_FORMAT: str = '%Y%m%d-%H%M%S'
 MODEL_DATETIME_FORMAT: str = '%Y-%m-%d %H:%M:%S'
 
-def get_server_id():
-    """
-        인스턴스를 식별하기 위한 SERVER_ID를 가져오는 함수
+def get_hostname():
+    '''
+        인스턴스를 식별하기 위한 문자열을 가져오는 함수
         - EC2 Instance의 경우 HOSTNAME에 Private IP DNS를 자동할당        
-    """
-    hostname = getattr(os.environ, 'HOSTNAME', None)
-    server_domain = getattr(os.environ, 'SERVER_DOMAIN', None)
-    if server_domain and '.' in server_domain:
-        private_ip = server_domain.split('.')[0]
-        if '-' in private_ip:
-            return private_ip.split('-')[-1]
-    else:
-        return hostname
+    '''
+    hostname = os.getenv('HOSTNAME', 'localhost')
+    if '.' in hostname:
+        hostname = hostname.split('.')[0]
+    if '-' in hostname:
+        hostname = hostname.split('-')[-1]
+    return hostname
 
 class AccessLoggingMiddleware:
     """
         Access Log를 기록하는 미들웨어
         get_response를 이용하여 requset정보를 가져와 기록 (0.5ms 소요)
     """
-    SERVER_ID = get_server_id()
+    SERVER_ID = get_hostname()
     
     def __init__(self, get_response):
         self.get_response = get_response
@@ -96,7 +94,7 @@ def error_exception_handler(exc, context):
             service_name=SERVICE_NAME,
             environment=ENVIRONMENT,
             version=VERSION,
-            server_id=get_server_id(),
+            server_id=get_hostname(),
             method=request.method,
             path=request.path,
             message=message,
@@ -131,7 +129,7 @@ class S3RotatingFileHandler(RotatingFileHandler):
                     service_name=SERVICE_NAME,
                     environment=ENVIRONMENT,
                     version=VERSION,
-                    server_id=get_server_id(),
+                    server_id=get_hostname(),
                     now=datetime.now().strftime(LOG_DATETIME_FORMAT)
                 )
             ),

@@ -43,6 +43,8 @@ class ImageResizeUpload:
         url_generator = str(uuid.uuid4())
         self.base_key = f'{directory}/{url_generator}/{url_generator[:8]}'
         self.image = image
+        self.image_uploader_class = AwsS3ImageUploader
+        self.s3_bucket_address = self.image_uploader_class.aws_s3_client.ADDRESS
 
         # source image를 binary로 읽고 난후 decode
         encoded_image = numpy.fromstring(self.image.read(), dtype=numpy.uint8)
@@ -63,7 +65,6 @@ class ImageResizeUpload:
         thumb_height = self._get_thumb_height()
         return cv2.resize(self.src_image, dsize=(THUMBNAIL_WIDTH, thumb_height), interpolation=cv2.INTER_LINEAR)
 
-
     def _get_decoded_image(self, is_thumbnail: bool):
         """
             cv2.imdecode()를 거친 image를 반환
@@ -71,7 +72,6 @@ class ImageResizeUpload:
         if is_thumbnail:
             return self._get_thumbnail_image()
         return self.src_image
-
 
     def _get_image_key(self, is_thumbnail: bool):
         """
@@ -81,32 +81,31 @@ class ImageResizeUpload:
             return self.base_key + self.THUMBNAIL_IMAGE_KEY_SUFFIX
         return self.base_key + self.SOURCE_IMAGE_KEY_SUFFIX
 
-
-    def _start_upload_thread(self, image_bytes: bytes, image_key: str) -> str:
+    def _start_uploader_thread(self, decoded_image, image_key: str) -> str:
         """
-            image를 s3에 업로드 하고, bucket address를 반환
+            image를 s3에 업로드 하는 thread를 가동
         """
-        image_uploader = AwsS3ImageUploader(image_bytes, image_key)
-        upload_thread = threading.Thread(
+        image_bytes = cv2.imencode('.jpg', decoded_image)[1].tobytes()
+        image_uploader = self.image_uploader_class(image_bytes, image_key)
+        image_uploader_thread = threading.Thread(
             target=image_uploader.upload, 
             args=()
         )
-        upload_thread.start()
-        return image_uploader.aws_s3_client.ADDRESS
+        image_uploader_thread.start()
 
     def get_image_data(self, is_thumbnail: bool) -> dict:
         """
             작업 수행 후 image data를 반환
         """
         try:
-            image_key = self._get_image_key(is_thumbnail=is_thumbnail)
             decoded_image = self._get_decoded_image(is_thumbnail=is_thumbnail)
             height, width, _ = decoded_image.shape
-            image_bytes = cv2.imencode('.jpg', decoded_image)[1].tobytes()
-            address = self._start_upload_thread(image_bytes=image_bytes, image_key=image_key)
+            image_key = self._get_image_key(is_thumbnail=is_thumbnail)
+
+            self._start_uploader_thread(decoded_image=decoded_image, image_key=image_key)
 
             return {
-                'image_url'    : f'{address}/{image_key}',
+                'image_url'    : f'{self.s3_bucket_address}/{image_key}',
                 'height'       : height,
                 'width'        : width,
                 'is_thumbnail' : is_thumbnail
@@ -122,9 +121,8 @@ class ImageResizeUpload:
                 원본과 썸네일 이미지의
                 동일한 인스턴스 객체를 통해 가져와 DB에 저장
         """
-        return [
-            self.get_image_data(is_thumbnail=False), 
+        return self.get_image_data(is_thumbnail=False), \
             self.get_image_data(is_thumbnail=True)
-        ]
+
 
 
