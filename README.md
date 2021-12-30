@@ -10,7 +10,12 @@ django 삽질 기록
 - [numpy](https://github.com/numpy/numpy)
 - [opencv-python](https://github.com/opencv/opencv-python)
 
-## Source 구조
+## Progress
+Active Record 방식의 model에서 Entity를 분리하기보다
+Serializer + Repository를 추가하고
+Service에 DI를 적용 해보는 시도 중
+
+## Source
 ~~~sh
 ├─Github
 │ .gitignore
@@ -22,6 +27,6 @@ django 삽질 기록
 │ exceptions.py
 │ logging.py         # access log, log handler
 │ outbounds.py       # 외부 API
-│ #services.py       # service layer - PR 도전중
+│ services.py        # service의 baseclass
 │ utils.py           # image uploader 등
 ~~~

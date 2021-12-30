@@ -24,6 +24,7 @@ class BaseViewSet(CreateModelMixin,
                     RetrieveModelMixin, 
                     GenericViewSet):
     authentication_classes = [JSONWebTokenAuthentication]
+    service_class = None
 
     def get_object(self):
         '''
