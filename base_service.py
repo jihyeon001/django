@@ -1,73 +1,17 @@
-from .exceptions    import (
-    KeyErrorException, 
-    ObjectDoesNotExistException,
-)
-
-class BaseService:
-    def __init__(self, serializer):
-        self.serializer = serializer
-        self.model_class = serializer.Meta.model
-        self.request = serializer.context.get('request', None)
-        self.relation_extraction = RelationExtraction(model_class=self.model_class)
-
-    def _get_validated_serializer(self, data, instance=None, partial=False):
-        """
-            serializer로 유효성 체크
-        """
-        serializer = self.serializer.__class__(
-            instance=instance, data=data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        return serializer
-
-    def _update_many_to_many(self, instance, many_to_many):
-        """
-            기존 값과 비교 후
-            *arguments 한번에 쿼리를 실행
-        """
-        for key, m2m_instances in many_to_many.items():
-            exists   = set(getattr(instance, key).all())
-            updates  = set(m2m_instances)
-            addeds   = updates - exists
-            deleteds = exists - updates
-            if addeds:
-                getattr(instance, key).add(*addeds)
-            if deleteds:
-                getattr(instance, key).remove(*deleteds)
-
-    def create(self):
-        """
-            .create() 또는 serializer.save() 방식 대비 약 50%의 속도 개선 
-        """
-        field, many_to_one, many_to_many = self.relation_extraction.get_field_data(data=self.request.data)
-        serializer = self._get_validated_serializer(data=field)
-        instance = serializer.save(**many_to_one)
-        if many_to_many:
-            self._update_many_to_many(instance=instance, many_to_many=many_to_many)
-        return instance
-
-    def update(self, instance, partial=False):
-        field, many_to_one, many_to_many = self.relation_extraction.get_field_data(data=self.request.data)
-        if field or many_to_one:
-            serializer = self._get_validated_serializer(
-                data=field, instance=instance, partial=partial)
-            serializer.save(**many_to_one)
-        if many_to_many:
-            self._update_many_to_many(instance=instance, many_to_many=many_to_many)
-        return instance
-
+from .exceptions     import ObjectDoesNotExistException
 
 class RelationExtraction:
     def __init__(self, model_class):
         self.model_class = model_class
         self.many_to_one, self.many_to_many, self.reverse_relations = self.model_class.get_relation_info()
-        
+
     @staticmethod
     def get_related_instance(related_model_class, nested_data):
         """
+            rest_framework.utils.model_meta.get_field_info()이 적용된
+            basemodel의 get_relation_info를 활용 하여
             related_model의 instance를 반환
         """
-        if not nested_data:
-            raise KeyErrorException(message=related_model_class.__name__)
         try:
             return related_model_class._default_manager.get(**nested_data)
         except related_model_class.DoesNotExist as e:
@@ -133,3 +77,44 @@ class RelationExtraction:
             else:
                 field[field_name] = val
         return field, many_to_one, many_to_many 
+
+
+class BaseService:
+    def __init__(self, user, repository):
+        self.user = user
+        self.repository = repository
+        self.model_class = self.repository.model_class
+        self.relation_extraction = RelationExtraction(model_class=self.model_class)
+
+    def _get_validated_serializer(self, data, instance=None, partial=False):
+        """
+            serializer로 유효성 체크
+        """
+        serializer = self.serializer_class(
+            instance=instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        return serializer
+
+    def get_by_model_id(self, model_id):
+        return self.repository.get_by_model_id(model_id=model_id)
+
+    def get_eager_objects(self):
+        return self.repository.get_eager_objects()
+
+    def filter_by_kwargs(self, **kwargs):
+        return self.repository.filter_by_kwargs(**kwargs)
+
+    def update(self, instance, data, partial=False):
+        field, many_to_one, many_to_many = self.relation_extraction.get_field_data(data=data)
+        serializer = self._get_validated_serializer(
+            instance=instance, data=field, partial=partial)
+        return self.repository.save(serializer, many_to_one, many_to_many)
+
+    def create(self, data):
+        field, many_to_one, many_to_many = self.relation_extraction.get_field_data(data=data)
+        serializer = self._get_validated_serializer(data=field)
+        return self.repository.save(serializer, many_to_one, many_to_many)
+
+        
+
+
