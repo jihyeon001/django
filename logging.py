@@ -2,6 +2,7 @@ import json
 import os
 import logging
 import time
+import threading
 from datetime                import datetime
 from logging.handlers        import RotatingFileHandler
 from rest_framework          import exceptions
@@ -69,21 +70,17 @@ def error_exception_handler(exc, context):
     """
     request = context['request']
     headers = {}
+
     if isinstance(exc, exceptions.APIException):
         message = exc.detail
         if getattr(exc, 'auth_header', None):
             headers['WWW-Authenticate'] = exc.auth_header
         if getattr(exc, 'wait', None):
             headers['Retry-After'] = '%d' % exc.wait
-        if isinstance(exc.detail, (list, dict)):
-            data = message
-        else:
-            data = {'detail': message}
-
         status_code = exc.status_code
     else:
-        message = f'{exc.__class__.__name__}, {exc.args[0]}'
-        data = {'detail': message}
+        message = f'{exc.__class__.__name__}, {exc.args[0]}' \
+            if ENVIRONMENT == 'local' else 'InternalServerError'
         status_code = 500
 
     contents = (
@@ -100,12 +97,18 @@ def error_exception_handler(exc, context):
             message=message,
         )
     )
-    web_hooks = SlackIncomingWebhooks(contents=contents)
-    web_hooks.start()
+
+    slack_web_hooks = SlackIncomingWebhooks()
+    slack_web_hooks_thread = threading.Thread(
+        target=slack_web_hooks.request, 
+        args=(contents,)
+    )
+    slack_web_hooks_thread.start()
+
     logger = logging.getLogger(ERROR_LOGER_NAME)
     logger.error(contents)
     set_rollback()
-    return Response(data, status=status_code, headers=headers)
+    return Response(status=status_code, headers=headers)
 
 class S3RotatingFileHandler(RotatingFileHandler):
     ACCESS_LOG_DIR = 'access_log'

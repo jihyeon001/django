@@ -45,7 +45,21 @@ class BaseRepository:
                         )
                     )
                 )
-        return self.model_class.eager_objects().filter(**kwargs)
+        data = self._process_nested_dict(data=kwargs)
+        return self.model_class.eager_objects().filter(**data)
 
     def get_eager_objects(self, excludes=()):
         return self.model_class.eager_objects(excludes=excludes)
+
+    def _process_nested_dict(self, data:dict) -> dict:
+        _data = dict()
+        for key, val in data.items():
+            if key in self.many_to_one_info.keys():
+                pk = val.get('id', None)
+                if pk:
+                    _data[key + '_id'] = pk
+            elif key in self.many_to_many_info.keys():
+                continue
+            else:
+                _data[key] = val
+        return _data

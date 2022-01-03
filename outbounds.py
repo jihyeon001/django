@@ -6,17 +6,13 @@ from .exceptions  import InternalServerErrorException
 
 SLACK: dict
 AWS_S3: dict
-class SlackIncomingWebhooks(threading.Thread): 
+class SlackIncomingWebhooks:
     url = SLACK['URL']
-
-    def __init__(self, contents: str):
-        self.contents = contents
-        threading.Thread.__init__(self)
-
-    def run(self):
+        
+    def request(self, contents):
         try:
             payload = {
-                'text':f':rotating_light:[{self.contents}'
+                'text':f':rotating_light:[{contents}'
             }
             requests.post(
                 url=self.url,
