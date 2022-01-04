@@ -8,7 +8,8 @@ from logging.handlers        import RotatingFileHandler
 from rest_framework          import exceptions
 from rest_framework.views    import set_rollback
 from rest_framework.response import Response
-from .outbounds              import AwsS3Client, SlackIncomingWebhooks
+from outbounds.aws          import AwsS3Client
+from outbounds.slack        import SlackIncomingWebhooks
 
 ACCESS_LOGER_NAME: str
 ERROR_LOGER_NAME: str

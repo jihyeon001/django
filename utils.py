@@ -3,8 +3,8 @@ import cv2
 import numpy
 import os
 import threading
-from .exceptions   import InternalServerErrorException
-from .outbounds    import AwsS3Client
+from .exceptions     import InternalServerErrorException
+from outbounds.aws   import AwsS3Client
 
 THUMBNAIL_WIDTH: int
 

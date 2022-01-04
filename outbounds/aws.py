@@ -1,28 +1,8 @@
-import requests
-import threading
-import json
 import boto3
-from .exceptions  import InternalServerErrorException
+from ..exceptions  import InternalServerErrorException
 
-SLACK: dict
+
 AWS_S3: dict
-class SlackIncomingWebhooks:
-    url = SLACK['URL']
-        
-    def request(self, contents):
-        try:
-            payload = {
-                'text':f':rotating_light:[{contents}'
-            }
-            requests.post(
-                url=self.url,
-                data=json.dumps(payload),
-                headers={'Content-Type':'application/json'}
-            )
-        except Exception as e:
-            raise InternalServerErrorException(
-                message=f'{self.__class__.__name__} {e}'
-            )
 
 class AwsS3Client:
     s3_client = boto3.client(
