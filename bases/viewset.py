@@ -1,4 +1,4 @@
-from .exceptions     import (
+from commons.exceptions     import (
     InternalServerErrorException, 
     PermissionDeniedException,
     NotauthenticatedException,

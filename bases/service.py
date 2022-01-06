@@ -1,4 +1,4 @@
-from .exceptions     import ObjectDoesNotExistException
+from commons.exceptions     import ObjectDoesNotExistException
 
 class RelationExtraction:
     def __init__(self, model_class):

@@ -1,9 +1,9 @@
 from django.core.mail  import EmailMessage
-from ..exceptions      import InternalServerErrorException
+from commons.exceptions      import InternalServerErrorException
 
 EMAIL_BODY_STYLES : dict
 
-class Email:
+class DjangoEmail:
     subtype       = 'html'
     fail_silently = False
     body_style    = EMAIL_BODY_STYLES

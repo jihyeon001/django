@@ -1,5 +1,5 @@
 import boto3
-from ..exceptions  import InternalServerErrorException
+from commons.exceptions  import InternalServerErrorException
 
 
 AWS_S3: dict

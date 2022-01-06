@@ -1,5 +1,7 @@
 go_over/
 legacy/
+.go_over/
+.legacy/
 .vscode/
 .gitmessage.txt
 # Byte-compiled / optimized / DLL files

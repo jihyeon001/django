@@ -1,5 +1,5 @@
 
-from .exceptions     import (
+from commons.exceptions     import (
     AttributeErrorException,
     ObjectDoesNotExistException,
 )

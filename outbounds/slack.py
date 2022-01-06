@@ -1,6 +1,6 @@
 import requests
 import json
-from ..exceptions  import InternalServerErrorException
+from commons.exceptions  import InternalServerErrorException
 
 SLACK: dict
 

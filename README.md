@@ -9,6 +9,7 @@ django 삽질 기록
 - [boto3](https://github.com/boto/boto3)
 - [numpy](https://github.com/numpy/numpy)
 - [opencv-python](https://github.com/opencv/opencv-python)
+- [urllib3](https://github.com/urllib3/urllib3)
 
 ## Progress
 Active Record 방식의 model에서 Entity를 분리하기보다
@@ -17,16 +18,24 @@ Service에 DI를 적용 해보는 시도 중
 
 ## Source
 ~~~sh
-├─Github
+├─bases        # baseclass
+│  │ model.py
+│  │ repository.py
+│  │ service.py
+│  │ test.py
+│  │ viewset.py
+│
+├─commons      # exceptions 등의 공통 모듈
+│  │ exceptions.py
+│  │ image_resize.py
+│  │ logging.py
+│
+├─outbounds    # 외부 API
+│  │ aws.py
+│  │ mail.py
+│  │ slack.py
+│  │ sms.py
+│
 │ .gitignore
-│ .gitmessage.txt
-│ base_model.py      # model의 baseclass
-│ base_test.py       # service test의 baseclass
-│ base_viewset.py
 │ README.md
-│ exceptions.py
-│ logging.py         # access log, log handler
-│ outbounds.py       # 외부 API
-│ services.py        # service의 baseclass
-│ utils.py           # image uploader 등
 ~~~
