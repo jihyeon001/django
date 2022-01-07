@@ -1,5 +1,4 @@
 from commons.exceptions     import (
-    InternalServerErrorException, 
     PermissionDeniedException,
     NotauthenticatedException,
     KeyErrorException
@@ -15,10 +14,8 @@ class BaseGenericViewSet(GenericViewSet):
     service_class = None
 
     def __init__(self):
-        if not self.repository_class or not self.service_class:
-            raise InternalServerErrorException(
-                message=f'"{self.__class__.__name__}" is not set repository or service class.'
-            )
+        assert self.repository_class, f"{self.__class__.__name__}, is not set repository class."
+        assert self.service_class, f"{self.__class__.__name__}, is not set service class."
         super().__init__()
 
     def permission_denied(self, request, message=None, code=None):
@@ -33,21 +30,18 @@ class BaseGenericViewSet(GenericViewSet):
         return self.service_class(user=self.request.user, repository=self.get_repository())
         
     def get_object(self):
-        try:
-            if not self.lookup_field in self.kwargs:
-                raise KeyErrorException(
-                    message=(
-                        '"{class_name}" be called with '
-                        'invalid URL keyword argument "{field_name}". '.format(
-                            class_name=self.__class__.__name__, 
-                            field_name=self.lookup_field
-                        )
+        if not self.lookup_field in self.kwargs:
+            raise KeyErrorException(
+                message=(
+                    '"{class_name}" be called with '
+                    'invalid URL keyword argument "{field_name}". '.format(
+                        class_name=self.__class__.__name__, 
+                        field_name=self.lookup_field
                     )
                 )
+            )
 
-            service = self.get_service()
-            obj = service.get_by_model_id(model_id=self.kwargs[self.lookup_field])
-            self.check_object_permissions(request=self.request, obj=obj)
-            return obj
-        except Exception as e:
-            raise InternalServerErrorException(message=e)
+        service = self.get_service()
+        obj = service.get_by_model_id(model_id=self.kwargs[self.lookup_field])
+        self.check_object_permissions(request=self.request, obj=obj)
+        return obj

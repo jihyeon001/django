@@ -1,16 +1,15 @@
-import json
 import hashlib
 import hmac
 import base64
 import time
-import urllib3
-from commons.exceptions  import InternalServerErrorException
+import requests
 
 NAVER_SMS_KEY : dict
 UTF8_ENCODING = 'UTF-8'
 POST_METHOD = 'POST'
 
 class NaverCloudSimpleEasyNotification:
+    success_status_code = 202
     timestamp   = str(int(time.time() * 1000))
     from_number = NAVER_SMS_KEY['CALLING_NUM']
     access_key  = NAVER_SMS_KEY['API_ACCESS_KEY']
@@ -21,7 +20,6 @@ class NaverCloudSimpleEasyNotification:
     def __init__(self, auth_number, phone):
         self.auth_number = auth_number
         self.phone = phone
-        self.http = urllib3.PoolManager()
     
     def _get_signature_message(self):
         return bytes(
@@ -57,7 +55,7 @@ class NaverCloudSimpleEasyNotification:
         }
 
     def _get_sms_body(self):
-        return json.dumps({
+        return {
             'type'        : 'SMS',
             'contentType' : 'COMM',
             'countryCode' : '82',
@@ -65,14 +63,19 @@ class NaverCloudSimpleEasyNotification:
             'subject'     : '인증문자',
             'content'     : f'인증번호 : {self.auth_number}',
             'messages'    : [{'to' : f'{self.phone}'}]
-        })
+        }
 
     def sms(self):
-        response = self.http.request(
-            POST_METHOD, 
-            self.url,
+        response = requests.request(
+            method=POST_METHOD,
+            url=self.url,
             headers=self._get_sms_headers(),
-            body=self._get_sms_body(),
+            data=self._get_sms_body(),
         )
-        if response.status != 200:
-            raise InternalServerErrorException(response.data)
+        assert response.status_code == self.success_status_code, (
+            "{class_name}, "
+            "{message} ".format(
+                class_name=self.__class__.__name__,
+                message=response.text
+            )
+        )

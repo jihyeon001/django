@@ -23,17 +23,22 @@ class AwsS3ImageUploader:
         return open(self.path, mode='rb')
 
     def upload(self):
-        try:
-            self.aws_s3_client.upload(
-                file_object=self._read_image_file(),
-                content_type=self.DEFAULT_CONTENT_TYPE,
-                key=self.image_key,
+        file_object = self._read_image_file()
+        assert os.path.exists(self.path) or file_object, (
+            "{class_name}, "
+            "{image_key} file dose not exist".format(
+                class_name=self.__class__.__name__,
+                image_key=self.image_key,
             )
-            os.remove(self.path)
-        except Exception as e:
-            raise InternalServerErrorException(
-                message=f'{self.__class__.__name__} {e}'
-            )
+        )
+
+        self.aws_s3_client.upload(
+            file_object=file_object,
+            content_type=self.DEFAULT_CONTENT_TYPE,
+            key=self.image_key,
+        )
+        os.remove(self.path)
+
 
 class ImageResizeUpload:
     THUMBNAIL_IMAGE_KEY_SUFFIX = '-thumbnail'
@@ -97,23 +102,19 @@ class ImageResizeUpload:
         """
             작업 수행 후 image data를 반환
         """
-        try:
-            decoded_image = self._get_decoded_image(is_thumbnail=is_thumbnail)
-            height, width, _ = decoded_image.shape
-            image_key = self._get_image_key(is_thumbnail=is_thumbnail)
+        decoded_image = self._get_decoded_image(is_thumbnail=is_thumbnail)
+        height, width, _ = decoded_image.shape
+        image_key = self._get_image_key(is_thumbnail=is_thumbnail)
 
-            self._start_uploader_thread(decoded_image=decoded_image, image_key=image_key)
+        self._start_uploader_thread(decoded_image=decoded_image, image_key=image_key)
 
-            return {
-                'image_url'    : f'{self.s3_bucket_address}/{image_key}',
-                'height'       : height,
-                'width'        : width,
-                'is_thumbnail' : is_thumbnail
-            }
-        except Exception as e:
-            raise InternalServerErrorException(
-                message=f'{self.__class__.__name__} {e}'
-            )
+        return {
+            'image_url'    : f'{self.s3_bucket_address}/{image_key}',
+            'height'       : height,
+            'width'        : width,
+            'is_thumbnail' : is_thumbnail
+        }
+
 
     def ex(self) -> list:
         """

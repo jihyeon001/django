@@ -1,5 +1,4 @@
 from django.core.mail  import EmailMessage
-from commons.exceptions      import InternalServerErrorException
 
 EMAIL_BODY_STYLES : dict
 
@@ -39,11 +38,6 @@ class DjangoEmail:
         )
 
     def send(self):
-        try:
-            email_message = self.get_email_message()
-            email_message.content_subtype = self.subtype
-            email_message.send(self.fail_silently)
-        except Exception as e:
-            raise InternalServerErrorException(
-                message=f'{self.__class__.__name__} {e}'
-            )
+        email_message = self.get_email_message()
+        email_message.content_subtype = self.subtype
+        email_message.send(self.fail_silently)
