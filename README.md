@@ -9,12 +9,10 @@ django 삽질 기록
 - [boto3](https://github.com/boto/boto3)
 - [numpy](https://github.com/numpy/numpy)
 - [opencv-python](https://github.com/opencv/opencv-python)
-- [urllib3](https://github.com/urllib3/urllib3)
 
 ## Progress
-Active Record 방식의 model에서 Entity를 분리하기보다
-Serializer + Repository를 추가하고
-Service에 DI를 적용 해보는 시도 중
+Repository, Service로 Django 레이어 개선
+Thread 관리 모듈 제작중
 
 ## Source
 ~~~sh
