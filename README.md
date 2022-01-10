@@ -11,10 +11,9 @@ django 삽질 기록
 - [opencv-python](https://github.com/opencv/opencv-python)
 
 ## Progress
-Repository, Service로 Django 레이어 개선
 Thread 관리 모듈 제작중
 
-## Source
+## Structure
 ~~~sh
 ├─bases        # baseclass
 │  │ model.py

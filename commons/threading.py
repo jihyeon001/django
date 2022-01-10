@@ -2,18 +2,14 @@ import threading
 from collections import deque
 
 MAXIMUM_THREAD_COUNT : int
-THREAD_QUEUE : list
+thread_queue : deque
 
-class Thread:
+class ThreadManager:
     thread_class = threading.Thread
 
-    def set_tartet(self, target):
+    def __init__(self, target, args):
         self.target = target
-        return self
-
-    def set_args(self, *args):
         self.args = args
-        return self
 
     def get_thread(self):
         return self.thread_class(
@@ -21,9 +17,17 @@ class Thread:
             args=self.args
         )
 
-    def start(target, *args):
+    def check_thread_count(self):
+        return threading.active_count() > MAXIMUM_THREAD_COUNT
+
+    def get_next_thread(self):
+        if thread_queue:
+            return thread_queue.popleft()
+        return None
+
+    def append_thread(self):
         thread = self.get_thread()
-        
-        if threading.active_count() > MAXIMUM_THREAD_COUNT:
-            THREAD_QUEUE.append()
-        thread.start()
+        thread_queue.append(thread)
+
+    def start(self):
+        pass
