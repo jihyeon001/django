@@ -1,8 +1,5 @@
 
-from commons.exceptions     import (
-    AttributeErrorException,
-    ObjectDoesNotExistException,
-)
+from commons.exceptions     import ObjectDoesNotExistException
 
 class BaseRepository:
     def __init__(self, model_class):
@@ -36,15 +33,12 @@ class BaseRepository:
     
     def filter_by_kwargs(self, **kwargs):
         for field_name in kwargs.keys():
-            if not hasattr(self.model_class, field_name):
-                raise AttributeErrorException(
-                    message=(
-                        "{field_name} is not field of '{model_name}' model  ".format(
-                            model_name=self.model_class.__name__,
-                            field_name=field_name,
-                        )
-                    )
+            assert hasattr(self.model_class, field_name),(
+                "{field_name} is not field of '{model_name}' model  ".format(
+                    model_name=self.model_class.__name__,
+                    field_name=field_name,
                 )
+            )
         data = self._process_nested_dict(data=kwargs)
         return self.model_class.eager_objects().filter(**data)
 

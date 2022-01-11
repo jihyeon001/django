@@ -1,7 +1,6 @@
 from commons.exceptions     import (
     PermissionDeniedException,
     NotauthenticatedException,
-    KeyErrorException
 )
 
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
@@ -30,16 +29,13 @@ class BaseGenericViewSet(GenericViewSet):
         return self.service_class(user=self.request.user, repository=self.get_repository())
         
     def get_object(self):
-        if not self.lookup_field in self.kwargs:
-            raise KeyErrorException(
-                message=(
-                    '"{class_name}" be called with '
-                    'invalid URL keyword argument "{field_name}". '.format(
-                        class_name=self.__class__.__name__, 
-                        field_name=self.lookup_field
-                    )
-                )
+        assert self.lookup_field in self.kwargs, (
+            '"{class_name}" be called with '
+            'invalid URL keyword argument "{field_name}". '.format(
+                class_name=self.__class__.__name__, 
+                field_name=self.lookup_field
             )
+        )
 
         service = self.get_service()
         obj = service.get_by_model_id(model_id=self.kwargs[self.lookup_field])
