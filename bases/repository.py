@@ -31,6 +31,16 @@ class BaseRepository:
         except self.model_class.DoesNotExist as e:
             raise ObjectDoesNotExistException(message=e)
     
+    def get_by_kwargs(self, **kwargs):
+        try:
+            return self.get_eager_objects().get(**kwargs)
+        except self.model_class.DoesNotExist as e:
+            raise ObjectDoesNotExistException(message=e)
+
+    def exists_by_kwargs(self, **kwargs):
+        queryset = self.filter_by_kwargs(**kwargs)
+        return queryset.exists()
+
     def filter_by_kwargs(self, **kwargs):
         for field_name in kwargs.keys():
             assert hasattr(self.model_class, field_name),(
@@ -44,16 +54,3 @@ class BaseRepository:
 
     def get_eager_objects(self, excludes=()):
         return self.model_class.eager_objects(excludes=excludes)
-
-    def _process_nested_dict(self, data:dict) -> dict:
-        _data = dict()
-        for key, val in data.items():
-            if key in self.many_to_one_info.keys():
-                pk = val.get('id', None)
-                if pk:
-                    _data[key + '_id'] = pk
-            elif key in self.many_to_many_info.keys():
-                continue
-            else:
-                _data[key] = val
-        return _data

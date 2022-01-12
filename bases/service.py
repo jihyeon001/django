@@ -80,9 +80,11 @@ class RelationExtraction:
 
 
 class BaseService:
-    def __init__(self, user, repository):
-        self.user = user
-        self.repository = repository
+    repository = None
+    field = None
+
+    def __init__(self):
+        assert self.repository, f"{self.__class__.__name__} not set repository."
         self.model_class = self.repository.model_class
         self.relation_extraction = RelationExtraction(model_class=self.model_class)
 
@@ -90,29 +92,41 @@ class BaseService:
         """
             serializer로 유효성 체크
         """
+        assert self.field, "field data is empty. must execute set_field_data() method."
         serializer = self.serializer_class(
             instance=instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         return serializer
 
-    def get_by_model_id(self, model_id):
-        return self.repository.get_by_model_id(model_id=model_id)
+    def set_field_data(self, data):
+        """
+            must be action before update, create method
+        """
+        self.field,
+        self.many_to_one, 
+        self.many_to_many = self.relation_extraction.get_field_data(data=data)
 
     def get_eager_objects(self):
         return self.repository.get_eager_objects()
 
+    def get_by_model_id(self, model_id):
+        return self.repository.get_by_model_id(model_id=model_id)
+
+    def get_by_kwargs(self, **kwargs):
+        return self.repository.get_by_kwargs(**kwargs)
+
     def filter_by_kwargs(self, **kwargs):
         return self.repository.filter_by_kwargs(**kwargs)
 
-    def update(self, instance, data, partial=False):
-        field, many_to_one, many_to_many = self.relation_extraction.get_field_data(data=data)
-        serializer = self._get_validated_serializer(
-            instance=instance, data=field, partial=partial)
+    def exists_by_kwargs(self, **kwargs):
+        return self.repository.exists_by_kwargs(**kwargs)
+
+    def update(self, instance, partial=False):
+        serializer = self._get_validated_serializer(instance=instance, partial=partial)
         return self.repository.save(serializer, many_to_one, many_to_many)
 
-    def create(self, data):
-        field, many_to_one, many_to_many = self.relation_extraction.get_field_data(data=data)
-        serializer = self._get_validated_serializer(data=field)
+    def create(self):
+        serializer = self._get_validated_serializer()
         return self.repository.save(serializer, many_to_one, many_to_many)
 
         
