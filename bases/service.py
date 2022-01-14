@@ -1,9 +1,9 @@
 from commons.exceptions     import ObjectDoesNotExistException
 
 class RelationExtraction:
-    def __init__(self, model_class):
-        self.model_class = model_class
-        self.many_to_one, self.many_to_many, self.reverse_relations = self.model_class.get_relation_info()
+    def __init__(self, many_to_one_info, many_to_many_info):
+        self.many_to_one_info = many_to_one_info
+        self.many_to_many_info = many_to_many_info
 
     @staticmethod
     def get_related_instance(related_model_class, nested_data):
@@ -21,13 +21,11 @@ class RelationExtraction:
         """
             many_to_one 인스턴스 반환
         """
-        relation_info = self.many_to_one.get(field_name, None)
+        relation_info = self.many_to_one_info.get(field_name, None)
         assert isinstance(nested_data, dict), (
-            "{field_name} of '{model_name}' model "
-            "is many-to-one relation field. so, nested data must be dictionary".format(
-                model_name=self.model_class.__name__,
-                field_name=field_name
-            )
+            f"'{field_name}' field "
+            "is many-to-one relation field. "
+            "so, nested data must be dictionary"
         )
 
         return self.get_related_instance(
@@ -39,13 +37,11 @@ class RelationExtraction:
         """
             many_to_many 인스턴스 반환
         """
-        relation_info = self.many_to_many.get(field_name, None)
+        relation_info = self.many_to_many_info.get(field_name, None)
         assert isinstance(nested_datas, list), (
-            "{field_name} of '{model_name}' model "
-            "is many-to-many relation field. so, nested data must be list".format(
-                model_name=self.model_class.__name__,
-                field_name=field_name
-            )
+            f"'{field_name}' field "
+            "is many-to-many relation field. "
+            "so, nested data must be list"
         )
 
         return [
@@ -64,12 +60,12 @@ class RelationExtraction:
         many_to_one = dict()
         field = dict()
         for field_name, val in data.items():
-            if field_name in self.many_to_one.keys():
+            if field_name in self.many_to_one_info.keys():
                 many_to_one[field_name] = self._get_many_to_one_instance(
                     field_name=field_name, 
                     nested_data=val
                 )
-            elif field_name in self.many_to_many.keys():
+            elif field_name in self.many_to_many_info.keys():
                 many_to_many[field_name] = self._get_many_to_many_instances(
                     field_name=field_name, 
                     nested_datas=val
@@ -80,21 +76,30 @@ class RelationExtraction:
 
 
 class BaseService:
-    repository = None
-    field = None
+    repository_class = None
 
     def __init__(self):
-        assert self.repository, f"{self.__class__.__name__} not set repository."
-        self.model_class = self.repository.model_class
-        self.relation_extraction = RelationExtraction(model_class=self.model_class)
+        assert self.repository_class, f"{self.__class__.__name__} not set repository class."
+        
+        self.repository = self.repository_class
+        if not hasattr(self.repository, 'field_names'):
+            self.repository = self.repository()
 
-    def _get_validated_serializer(self, data, instance=None, partial=False):
+        self.field_names = self.repository.field_names
+        self.has_user_foreign_key = self.repository.has_user_foreign_key
+        self.relation_extraction = RelationExtraction(
+            many_to_one_info=self.repository.many_to_one_info, 
+            many_to_many_info=self.repository.many_to_many_info,
+        )
+
+    def _get_validated_serializer(self, instance=None, partial=False):
         """
             serializer로 유효성 체크
         """
-        assert self.field, "field data is empty. must execute set_field_data() method."
+
+        assert self.field, "field data is empty. must execute set_data() method."
         serializer = self.serializer_class(
-            instance=instance, data=data, partial=partial)
+            instance=instance, data=self.field, partial=partial)
         serializer.is_valid(raise_exception=True)
         return serializer
 
@@ -102,32 +107,35 @@ class BaseService:
         """
             must be action before update, create method
         """
-        self.field,
-        self.many_to_one, 
-        self.many_to_many = self.relation_extraction.get_field_data(data=data)
+        (
+            self.field,
+            self.many_to_one, 
+            self.many_to_many
+        ) = self.relation_extraction.get_field_data(data=data)
+
+    def set_user_foreign_key(self, user):
+        if self.has_user_foreign_key:
+            self.many_to_one['user'] = user
 
     def get_eager_objects(self):
         return self.repository.get_eager_objects()
 
-    def get_by_model_id(self, model_id):
-        return self.repository.get_by_model_id(model_id=model_id)
+    def get(self, **kwargs):
+        return self.repository.get(**kwargs)
 
-    def get_by_kwargs(self, **kwargs):
-        return self.repository.get_by_kwargs(**kwargs)
+    def filter(self, **kwargs):
+        return self.repository.filter(**kwargs)
 
-    def filter_by_kwargs(self, **kwargs):
-        return self.repository.filter_by_kwargs(**kwargs)
-
-    def exists_by_kwargs(self, **kwargs):
-        return self.repository.exists_by_kwargs(**kwargs)
+    def exists(self, **kwargs):
+        return self.repository.exists(**kwargs)
 
     def update(self, instance, partial=False):
         serializer = self._get_validated_serializer(instance=instance, partial=partial)
-        return self.repository.save(serializer, many_to_one, many_to_many)
+        return self.repository.save(serializer, self.many_to_one, self.many_to_many)
 
     def create(self):
         serializer = self._get_validated_serializer()
-        return self.repository.save(serializer, many_to_one, many_to_many)
+        return self.repository.save(serializer, self.many_to_one, self.many_to_many)
 
         
 

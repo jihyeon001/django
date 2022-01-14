@@ -11,6 +11,7 @@ django 삽질 기록
 - [opencv-python](https://github.com/opencv/opencv-python)
 
 ## Progress
+Layer 구조 개선
 Thread 관리 모듈 제작중
 
 ## Structure
