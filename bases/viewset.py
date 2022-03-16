@@ -1,14 +1,13 @@
-from commons.exceptions                import PermissionDeniedException, NotauthenticatedException
-from commons.permissions               import IsOwnerOrMemberReadOnly
-from rest_framework                    import viewsets
-from rest_framework_jwt.authentication import JSONWebTokenAuthentication
-
+from commons.exceptions            import PermissionDeniedException, NotauthenticatedException
+from commons.permissions           import IsOwnerOrMemberReadOnly
+from rest_framework                import viewsets
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
 
 class BaseGenericViewSet(viewsets.GenericViewSet):
     service_class = None
     lookup_field = 'id'
-    authentication_classes = [JSONWebTokenAuthentication]
+    authentication_class = [SessionAuthentication, BasicAuthentication]
     permission_classes = (IsOwnerOrMemberReadOnly, )
 
     def __init__(self, *args, **kwargs):
@@ -20,18 +19,6 @@ class BaseGenericViewSet(viewsets.GenericViewSet):
         if request.authenticators and not request.successful_authenticator:
             raise NotauthenticatedException(message=message, code=code)
         raise PermissionDeniedException(message=message, code=code)
-
-    def check_queryset_permissions(self, request, queryset):
-        """
-            queryset을 위한 인증
-        """
-        for permission in self.get_permissions():
-            if not permission.has_queryset_permission(request, self, queryset):
-                self.permission_denied(
-                    request,
-                    message=getattr(permission, 'message', None),
-                    code=getattr(permission, 'code', None)
-                )
 
     def check_object_permissions(self, request, obj):
         """
@@ -67,5 +54,4 @@ class BaseGenericViewSet(viewsets.GenericViewSet):
                 )
             )
         queryset = self.service.filter(**kwargs)
-        self.check_queryset_permissions(request=self.request, queryset=queryset)
         return queryset
