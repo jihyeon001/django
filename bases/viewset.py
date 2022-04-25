@@ -1,5 +1,4 @@
 from commons.exceptions            import PermissionDeniedException, NotauthenticatedException
-from commons.permissions           import IsOwnerOrMemberReadOnly
 from rest_framework                import viewsets
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
@@ -8,7 +7,6 @@ class BaseGenericViewSet(viewsets.GenericViewSet):
     service_class = None
     lookup_field = 'id'
     authentication_class = [SessionAuthentication, BasicAuthentication]
-    permission_classes = (IsOwnerOrMemberReadOnly, )
 
     def __init__(self, *args, **kwargs):
         assert self.service_class, f"{self.__class__.__name__} not set service class."

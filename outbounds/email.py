@@ -3,17 +3,17 @@ from django.core.mail  import EmailMessage
 EMAIL_BODY_STYLES : dict
 
 class DjangoEmail:
-    subtype       = 'html'
+    subtype = 'html'
     fail_silently = False
-    body_style    = EMAIL_BODY_STYLES
-    email_class   = EmailMessage
+    body_style: dict = EMAIL_BODY_STYLES
+    email_class = EmailMessage
 
-    def __init__(self, recipient_name, recipient_email, auth_number):
+    def __init__(self, recipient_name: str, recipient_email: str, auth_number: int):
         self.recipient_name  = recipient_name
         self.recipient_email = recipient_email
         self.auth_number     = auth_number
 
-    def get_body(self):
+    def get_body(self) -> str:
         return (
             "<div style=\"{text_style}\">"
             "<H2>환영합니다. {recipient_name}님</H2>"
@@ -29,7 +29,7 @@ class DjangoEmail:
             )
         )
 
-    def get_email_message(self):
+    def get_email_message(self) -> EmailMessage:
         return self.email_class(
             subject=self.body_style['SUBJECT'], 
             body=self.get_body(), 
