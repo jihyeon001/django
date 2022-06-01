@@ -10,8 +10,10 @@ from rest_framework.fields import get_error_detail, set_value, empty
 
 PRIMARY_KEY_NAME: str
 
-class BaseModelSerializer(serializers.ModelSerializer):
+class ModelSerializer(serializers.ModelSerializer):
     many_to_many_ids = {}
+    many_to_one_info = OrderedDict()
+    many_to_many_info = OrderedDict()
 
     def __init__(self, *args, **kwargs):
         

@@ -42,7 +42,7 @@ class BaseModelManager(models.Manager):
         return Model_Objects
 
 
-class BaseModel(models.Model):
+class Model(models.Model):
     """
         This model defines base models that implements common fields
     """

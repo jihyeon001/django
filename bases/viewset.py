@@ -43,13 +43,5 @@ class BaseGenericViewSet(viewsets.GenericViewSet):
         return obj
 
     def get_queryset(self, **kwargs):
-        for key in kwargs.keys():
-            assert key in self.service.field_names, (
-                '"{class_name}" be called with '
-                'invalid keyword argument "{field_name}". '.format(
-                    class_name=self.__class__.__name__, 
-                    field_name=key
-                )
-            )
         queryset = self.service.filter(**kwargs)
         return queryset
