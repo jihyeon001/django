@@ -1,7 +1,8 @@
-from commons.exceptions import PermissionDeniedException, NotauthenticatedException
+from django.db.models.query import QuerySet
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
+from commons.exceptions import PermissionDeniedException, NotauthenticatedException
 from .repository import Repository
 from .service import Service
 
@@ -54,6 +55,6 @@ class BaseGenericViewSet(viewsets.GenericViewSet):
         self.check_object_permissions(request=self.request, obj=obj)
         return obj
 
-    def get_queryset(self, **kwargs):
+    def get_queryset(self, **kwargs) -> QuerySet:
         queryset = self.service.filter(**kwargs)
         return queryset

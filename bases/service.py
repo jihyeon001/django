@@ -1,4 +1,6 @@
-from abc import abstractclassmethod
+from django.db.models.query import QuerySet
+
+from .model      import Model
 from .repository import Repository
 
 
@@ -7,10 +9,8 @@ class Service:
     def  __init__(self, repository: Repository) -> None:
         self.repository: Repository = repository
 
-    @abstractclassmethod
-    def get(self, **kwargs):
-        pass
+    def get(self, **kwargs) -> Model:
+        self.repository.get(**self.kwargs)
 
-    @abstractclassmethod
-    def filter(self, **kwargs):
-        pass
+    def filter(self, **kwargs) -> QuerySet:
+        self.repository.filter(**kwargs)

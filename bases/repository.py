@@ -1,4 +1,4 @@
-from typing import Union, Optional, Dict, List
+from typing import Union, Optional
 
 from django.db.models.query import QuerySet
 from rest_framework.exceptions import ValidationError
@@ -34,7 +34,7 @@ class Repository:
         instance: Optional[Model] = None,
         partial: Optional[bool] = None,
         many: bool=False,
-    ):
+    ) -> ModelSerializer:
         serializer = self.serializer_class(
             data=data, instance=instance, partial=partial, many=many
         )
@@ -79,7 +79,7 @@ class Repository:
     def get_or_create(self, **kwargs) -> tuple:
         return self.model_class.objects.eager.get_or_create(**kwargs)
 
-    def get(self, **kwargs):
+    def get(self, **kwargs) -> Model:
         try:
             return self.model_class.objects.eager.get(**kwargs)
         except self.model_class.DoesNotExist as e:
