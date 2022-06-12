@@ -2,11 +2,9 @@ import uuid
 import cv2
 import numpy
 import os
-import threading
 from dataclasses     import dataclass
 from typing          import List
 
-from .exceptions     import InternalServerErrorException
 from outbounds.aws   import AwsS3Client
 
 THUMBNAIL_WIDTH: int

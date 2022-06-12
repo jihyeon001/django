@@ -1,15 +1,18 @@
 import json
-import os
 import logging
 import time
 import threading
 from datetime                import datetime
 from logging.handlers        import RotatingFileHandler
+
 from rest_framework          import exceptions
 from rest_framework.views    import set_rollback
 from rest_framework.response import Response
-from outbounds.aws          import AwsS3Client
-from outbounds.slack        import SlackIncomingWebhooks
+
+from outbounds.aws    import AwsS3Client
+from outbounds.slack  import SlackIncomingWebhooks
+from .utils           import get_hostname
+
 
 ACCESS_LOGER_NAME: str
 ERROR_LOGER_NAME: str
@@ -19,27 +22,17 @@ VERSION: str
 LOG_DATETIME_FORMAT: str = '%Y%m%d-%H%M%S'
 MODEL_DATETIME_FORMAT: str = '%Y-%m-%d %H:%M:%S'
 
-def get_hostname():
-    '''
-        인스턴스를 식별하기 위한 문자열을 가져오는 함수
-        - EC2 Instance의 경우 HOSTNAME에 Private IP DNS를 자동할당        
-    '''
-    hostname = os.getenv('HOSTNAME', 'localhost')
-    if '.' in hostname:
-        hostname = hostname.split('.')[0]
-    if '-' in hostname:
-        hostname = hostname.split('-')[-1]
-    return hostname
+
 
 class AccessLoggingMiddleware:
     """
         Access Log를 기록하는 미들웨어
         get_response를 이용하여 requset정보를 가져와 기록 (0.5ms 소요)
     """
-    SERVER_ID = get_hostname()
     
     def __init__(self, get_response):
         self.get_response = get_response
+        self.server_id = get_hostname()
 
     def __call__(self, request):
         response = self.get_response(request)
@@ -55,7 +48,7 @@ class AccessLoggingMiddleware:
             'timestamp' : int(time.time()),
             'datetime'  : datetime.now().strftime(MODEL_DATETIME_FORMAT),
             'client_ip' : request.META.get('HTTP_X_FORWARDED_FOR', None),
-            'server_id' : self.SERVER_ID,
+            'server_id' : self.server_id,
             'method'    : request.method,
             'path'      : request.path,
             'params'    : request.GET.dict(),
