@@ -5,11 +5,78 @@ import time
 import json
 import requests
 
+from abc import ABCMeta, abstractmethod
 
-class NcloudConfig:
+class NcloudSMSType(metaclass=ABCMeta):
 
-    def __init__(self, json_path:str) -> None:
-        config_file = json.load(open(json_path, mode='r', encoding='utf8'))
+    def __init__(self, content: str, to: str) -> None:
+        assert len(content) < self.max_length, "content is too long"
+        self.content = content
+        self.to = to.replace('-', '') if '-' in to else to
+
+    @property
+    @abstractmethod
+    def name(self):
+        pass
+
+    @property
+    @abstractmethod
+    def max_length(self):
+        pass
+
+    def get_body(self) -> dict:
+        return {
+            'type' : self.name,
+            'content' : self.content,
+            'messages' : [{'to' : self.to}],
+            'contentType' : 'COMM',
+            'countryCode' : '82',
+        }
+
+
+class SMS(NcloudSMSType):
+    name = 'SMS'
+    max_length = 80
+
+
+class LMS(NcloudSMSType):
+    name = 'LMS'
+    max_length = 2000
+
+    def __init__(self, content: str, to: str, subject: str) -> None:
+        super().__init__(content, to)
+        self.subject = subject
+    
+    def get_body(self) -> dict:
+        body = super().get_body()
+        body['messages'] = [{
+            'to' : self.to,
+            'subject' : self.subject,
+            'content' : self.content,
+        }]
+        return body
+
+class MMS(LMS):
+    name = 'MMS'
+    max_length = 2000
+
+    def __init__(self, content: str, to: str, subject: str, image_name: str, image_body: str) -> None:
+        super().__init__(content, to, subject)
+        self.image_name = image_name
+        self.image_body = image_body
+
+    def get_body(self) -> dict:
+        body = super().get_body()
+        body['files'] = [{
+            'name' : self.image_name,
+            'body' : self.image_body,
+        }]
+        return body
+
+class NcloudSMSConfig:
+
+    def __init__(self, path:str) -> None:
+        config_file = json.load(open(path, mode='r', encoding='utf8'))
         self.encoding = config_file['ENCODING']
         self.method = config_file['METHOD']
         self.from_number = config_file['CALLING_NUM']
@@ -21,10 +88,11 @@ class NcloudConfig:
 
 class NcloudSimpleEasyNotification:
     
-    def __init__(self, content:str, phone:str, config:NcloudConfig) -> None:
-        self.content = content
-        self.phone = phone.replace('-', '') if '-' in phone else phone
+    def __init__(self, sms: NcloudSMSType, config: NcloudSMSConfig) -> None:
         self.config = config
+        body: dict = sms.get_body()
+        body['from'] = self.config.from_number,
+        self.body: str = json.dumps(body)
         self.timestamp = str(int(time.time() * 1000))
     
     def	_get_signature_message(self) -> bytes:
@@ -50,22 +118,12 @@ class NcloudSimpleEasyNotification:
             'x-ncp-apigw-signature-v2' : self._get_signature(),
         }
 
-    def _get_body(self) -> str:
-        return json.dumps({
-            'type' : 'SMS',
-            'from' : self.config.from_number,
-            'content' : self.content,
-            'messages' : [{'to' : self.phone}],
-            'contentType' : 'COMM',
-            'countryCode' : '82',
-        })
-
     def send_message(self) -> None:
         response = requests.request(
             self.config.method, 
             self.config.url,
             headers=self._get_headers(),
-            data=self._get_body(),
+            data=self.body,
         )
 
         assert response.status_code == self.config.success_status_code, (
