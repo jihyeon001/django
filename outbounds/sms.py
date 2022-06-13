@@ -2,77 +2,73 @@ import hashlib
 import hmac
 import base64
 import time
+import json
 import requests
 
-NAVER_SMS_KEY : dict
-UTF8_ENCODING = 'UTF-8'
-POST_METHOD = 'POST'
 
-class NaverCloudSimpleEasyNotification:
-    success_status_code = 202
-    timestamp   = str(int(time.time() * 1000))
-    from_number = NAVER_SMS_KEY['CALLING_NUM']
-    access_key  = NAVER_SMS_KEY['API_ACCESS_KEY']
-    secret_key  = bytes(NAVER_SMS_KEY['API_SECRET_KEY'], UTF8_ENCODING)
-    uri = NAVER_SMS_KEY['URI']
-    url = NAVER_SMS_KEY['URL']
+class NcloudConfig:
 
-    def __init__(self, auth_number, phone):
-        self.auth_number = auth_number
-        self.phone = phone
+    def __init__(self, json_path:str) -> None:
+        config_file = json.load(open(json_path, mode='r', encoding='utf8'))
+        self.encoding = config_file['ENCODING']
+        self.method = config_file['METHOD']
+        self.from_number = config_file['CALLING_NUM']
+        self.access_key  = config_file['API_ACCESS_KEY']
+        self.secret_key  = bytes(config_file['API_SECRET_KEY'], self.encoding)
+        self.uri = config_file['URI']
+        self.url = config_file['URL'] + self.uri
+        self.success_status_code = config_file['SUCCESS_STATUS_CODE']
+
+class NcloudSimpleEasyNotification:
     
-    def _get_signature_message(self):
-        return bytes(
-            (
-                '{method} '
-                '{uri}\n'
-                '{timestamp}\n'
-                '{access_key}'.format(
-                    method=POST_METHOD,
-                    uri=self.uri,
-                    timestamp=self.timestamp,
-                    access_key=self.access_key,
-                )
-            ), encoding=UTF8_ENCODING
-        )
+    def __init__(self, content:str, phone:str, config:NcloudConfig) -> None:
+        self.content = content
+        self.phone = phone.replace('-', '') if '-' in phone else phone
+        self.config = config
+        self.timestamp = str(int(time.time() * 1000))
+    
+    def	_get_signature_message(self) -> bytes:
+        return bytes('{method} {uri}\n{timestamp}\n{access_key}'.format(
+            method=self.config.method, 
+            uri=self.config.uri,
+            timestamp=self.timestamp,
+            access_key=self.config.access_key,
+        ), encoding=self.config.encoding)
 
-    def	_get_signature(self):
-        message = self._get_signature_message()
-        return base64.b64encode(
-            hmac.new(
-                self.secret_key, 
-                message, 
-                digestmod=hashlib.sha256
-            ).digest()
-        )
+    def	_get_signature(self) -> bytes:
+        return base64.b64encode(hmac.new(
+            key=self.config.secret_key, 
+            msg=self._get_signature_message(), 
+            digestmod=hashlib.sha256
+        ).digest())
 
-    def _get_sms_headers(self):
+    def _get_headers(self) -> dict:
         return {
-            'Content-Type'             : 'application/json; charset=utf-8',
-            'x-ncp-apigw-timestamp'    : self.timestamp,
-            'x-ncp-iam-access-key'     : self.access_key,
+            'Content-Type' : 'application/json; charset=utf-8',
+            'x-ncp-iam-access-key' : self.config.access_key,
+            'x-ncp-apigw-timestamp' : self.timestamp,
             'x-ncp-apigw-signature-v2' : self._get_signature(),
         }
 
-    def _get_sms_body(self):
-        return {
-            'type'        : 'SMS',
+    def _get_body(self) -> str:
+        return json.dumps({
+            'type' : 'SMS',
+            'from' : self.config.from_number,
+            'content' : self.content,
+            'messages' : [{'to' : self.phone}],
             'contentType' : 'COMM',
             'countryCode' : '82',
-            'from'        : self.from_number,
-            'subject'     : '인증문자',
-            'content'     : f'인증번호 : {self.auth_number}',
-            'messages'    : [{'to' : f'{self.phone}'}]
-        }
+        })
 
-    def sms(self):
+    def send_message(self) -> None:
         response = requests.request(
-            method=POST_METHOD,
-            url=self.url,
-            headers=self._get_sms_headers(),
-            data=self._get_sms_body(),
+            self.config.method, 
+            self.config.url,
+            headers=self._get_headers(),
+            data=self._get_body(),
         )
-        assert response.status_code == self.success_status_code, (
+
+        assert response.status_code == self.config.success_status_code, (
             "{class_name}, "
             "{message} ".format(
                 class_name=self.__class__.__name__,
