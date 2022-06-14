@@ -1,20 +1,28 @@
 import requests
 import json
 
-SLACK: dict
+class SlackConfig:
+
+    def __init__(self, path: str) -> None:
+        config_file = json.load(open(path, mode='r', encoding='utf8'))
+        self.url = config_file['URL']
+        self.headers = {'Content-Type': 'application/json'}
+        self.emojis = config_file['EMOJIS']
 
 class SlackIncomingWebhooks:
-    success_status_code = 200
-    url = SLACK['URL']
-        
-    def request(self, contents):
-        payload = {
-            'text':f':rotating_light:[{contents}'
+
+    def __init__(self, config: SlackConfig, comment: str, emoji_name: str = 'rotating_light') -> None:
+        self.config = config
+        emoji = self.config.emojis.get(emoji_name, ':rotating_light:')
+        self.payload = {
+            'text': f'{emoji}{comment}'
         }
+
+    def request(self) -> None:
         response = requests.post(
-            url=self.url,
-            data=json.dumps(payload),
-            headers={'Content-Type':'application/json'}
+            url=self.config.url,
+            data=json.dumps(self.payload),
+            headers=self.config.headers
         )
         assert response.status_code == self.success_status_code, (
             "{class_name}, "
