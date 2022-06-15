@@ -18,10 +18,13 @@ class SlackIncomingWebhooks:
             'text': f'{emoji}{comment}'
         }
 
+    def get_data(self):
+        return json.dumps(self.payload)
+
     def request(self) -> None:
         response = requests.post(
             url=self.config.url,
-            data=json.dumps(self.payload),
+            data=self.get_data(),
             headers=self.config.headers
         )
         assert response.status_code == self.success_status_code, (
