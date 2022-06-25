@@ -11,8 +11,7 @@ django 삽질 기록
 - [opencv-python](https://github.com/opencv/opencv-python)
 
 ## Progress
-Layer 구조 개선
-Thread 관리 모듈 제작중
+typing 적용
 
 ## Structure
 ~~~sh
@@ -31,6 +30,7 @@ Thread 관리 모듈 제작중
 ├─outbounds    # 외부 API
 │  │ aws.py
 │  │ mail.py
+│  │ go_pub_data.py
 │  │ slack.py
 │  │ sms.py
 │
