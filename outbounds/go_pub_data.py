@@ -122,4 +122,53 @@ class GoPubDataClient:
             self.result = self.api.postprocess(self.datas)
 
 
+class GoPubDataService:
+    def __init__(
+        self,
+        config: GoPubDataConfig,
+        api_classes: List[GoPubDataApi],
+        storage_path: str,
+    ) -> None:
+        self.config: GoPubDataConfig = config
+        self.storage_path = storage_path
+        self.api_classes = api_classes
 
+        self.initial_api_clients()
+        self.set_svc_ids()
+
+    def initial_api_clients(self) -> None:
+        for api_class in self.api_classes:
+            setattr(
+                self,
+                api_class.endpoint + "_client",
+                GoPubDataClient(
+                    config=self.config,
+                    api_class=api_class,
+                ),
+            )
+
+    def get_api_clients(self) -> List[GoPubDataClient]:
+        api_clients = [
+            getattr(self, api_class.endpoint + "_client")
+            for api_class in self.api_classes
+        ]
+        return sorted(api_clients, key=lambda x: len(x.result.keys()), reverse=True)
+
+    def set_svc_ids(self):
+        ids_list = [client.result.keys() for client in self.get_api_clients()]
+        self.svc_ids = list(set([i for ids in ids_list for i in ids]))
+
+    def to_json(self, data: Union[list, dict]) -> None:
+        json.dump(
+            data,
+            open(self.storage_path, mode="w", encoding="utf8"),
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    def merge(self) -> dict:
+        base, *others = self.get_api_clients()
+        for key in base.result.keys():
+            for other in others:
+                base.result[key].update(other.result.get(key, {other.api.endpoint: {}}))
+        return base.result
