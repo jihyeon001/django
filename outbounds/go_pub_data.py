@@ -4,16 +4,16 @@ import os
 from requests import get, Response
 from abc import ABCMeta, abstractmethod
 from types import SimpleNamespace
-from typing import Union
+from typing import Union, List
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class GoPubDataConfig:
     def __init__(
         self,
         dirname: str,
         filename: str,
-        storage_dirname: str,
         response_key_filename: str,
     ) -> None:
         config_file = json.load(
@@ -24,7 +24,6 @@ class GoPubDataConfig:
         self.decoded_key = config_file["DECODED_KEY"]
         self.default_headers = SimpleNamespace(**config_file["headers"])
         self.default_params = SimpleNamespace(**config_file["params"])
-        self.storage_directory = f"{PACKAGE_DIR}/{storage_dirname}"
         self.key_info_path = f"{PACKAGE_DIR}/{dirname}/{response_key_filename}"
 
 
@@ -58,7 +57,7 @@ class GoPubDataApi(metaclass=ABCMeta):
         }
 
 
-class GoPubDataService:
+class GoPubDataClient:
     def __init__(self, config: GoPubDataConfig, api_class: GoPubDataApi) -> None:
         self.api: GoPubDataApi = api_class(key_info_path=config.key_info_path)
         self.config: GoPubDataConfig = config
@@ -73,6 +72,8 @@ class GoPubDataService:
         self.set_request_attrs(
             "headers", defaluts=self.config.default_headers, keys=self.api.headers_keys
         )
+
+        print(self.api.endpoint, " 수집시작")
         self.request()
 
     def set_request_attrs(
@@ -97,13 +98,19 @@ class GoPubDataService:
             params=self.params.__dict__,
         )
 
+        print(
+            getattr(self.params, self.api.params_keys.page),
+            "페이지 수집 -> ",
+            response.status_code,
+        )
+
         responsed_data = json.loads(response.text)
         self.datas += responsed_data[self.api.response_keys.data]
-        self.recur_or_quit(
+        self.recur_or_postprocess(
             total_count=responsed_data[self.api.response_keys.total_count]
         )
 
-    def recur_or_quit(self, total_count: int) -> None:
+    def recur_or_postprocess(self, total_count: int) -> None:
         page = getattr(self.params, self.api.params_keys.page)
         per_page = getattr(self.params, self.api.params_keys.per_page)
 
@@ -111,15 +118,8 @@ class GoPubDataService:
             setattr(self.params, self.api.params_keys.page, page + 1)
             self.request()
         else:
+            print(total_count, "개 중 ", len(self.datas), "개 수집완료")
             self.result = self.api.postprocess(self.datas)
 
-    def to_json(self, path: str, data: Union[list, dict]) -> None:
-        json.dump(
-            data, open(path, mode="w", encoding="utf8"), indent=2, ensure_ascii=False
-        )
 
-    def merge(self, details: dict, conditions: dict) -> dict:
-        return {
-            key: {**val, **details[key], **conditions.get(key, {"conditions": {}})}
-            for key, val in self.result.items()
-        }
+
