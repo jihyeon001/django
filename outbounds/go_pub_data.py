@@ -8,39 +8,21 @@ from typing import Union, List
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-
 class GoPubDataConfig:
-    def __init__(
-        self,
-        dirname: str,
-        filename: str,
-        response_key_filename: str,
-    ) -> None:
-        config_file = json.load(
-            open(f"{PACKAGE_DIR}/{dirname}/{filename}", mode="r", encoding="utf8")
-        )
-        self.base_url = config_file["BASE_URL"]
-        self.encoded_key = config_file["ENCODED_KEY"]
-        self.decoded_key = config_file["DECODED_KEY"]
-        self.default_headers = SimpleNamespace(**config_file["headers"])
-        self.default_params = SimpleNamespace(**config_file["params"])
-        self.key_info_path = f"{PACKAGE_DIR}/{dirname}/{response_key_filename}"
+    def __init__(self, config_json: dict) -> None:
+        self.BASE_URL = config_json["BASE_URL"]
+        self.ENCODED_KEY = config_json["ENCODED_KEY"]
+        self.DECODED_KEY = config_json["DECODED_KEY"]
 
 
-class GoPubDataApi(metaclass=ABCMeta):
-    def __init__(self, key_info_path: str) -> None:
-        key_info = json.load(open(key_info_path, mode="r", encoding="utf8"))[
-            self.endpoint
-        ]
-        self.headers_keys = SimpleNamespace(**key_info["headers"])
-        self.params_keys = SimpleNamespace(**key_info["params"])
-        self.response_keys = SimpleNamespace(**key_info["response"])
-        self.response_data_keys = SimpleNamespace(**key_info["response_data"])
+class GoPubDataApiAdapter(metaclass=ABCMeta):
+    def __init__(self, apis_json: dict) -> None:
 
-    @property
-    @abstractmethod
-    def filename(self) -> str:
-        pass
+        api: dict = apis_json[self.endpoint]
+        self.headers_keys = SimpleNamespace(**api["headers"])
+        self.params_keys = SimpleNamespace(**api["params"])
+        self.response_keys = SimpleNamespace(**api["response"])
+        self.response_data_keys = SimpleNamespace(**api["response_data"])
 
     @property
     @abstractmethod
@@ -58,37 +40,34 @@ class GoPubDataApi(metaclass=ABCMeta):
 
 
 class GoPubDataClient:
-    def __init__(self, config: GoPubDataConfig, api_class: GoPubDataApi) -> None:
-        self.api: GoPubDataApi = api_class(key_info_path=config.key_info_path)
+    def __init__(self, config: GoPubDataConfig, adapter: GoPubDataApiAdapter) -> None:
+        self.adapter: GoPubDataApiAdapter = adapter
         self.config: GoPubDataConfig = config
 
-        self.url = f"{self.config.base_url}/{self.api.endpoint}"
+        self.url = f"{self.config.BASE_URL}/{self.adapter.endpoint}"
         self.datas, self.result, self.total_count = [], {}, 0
 
-        self.set_request_attrs(
-            "params", defaluts=self.config.default_params, keys=self.api.params_keys
-        )
+        self.set_request_attrs()
 
-        self.set_request_attrs(
-            "headers", defaluts=self.config.default_headers, keys=self.api.headers_keys
-        )
-
-        print(self.api.endpoint, " 수집시작")
+        print(self.adapter.endpoint, " 수집시작")
         self.request()
 
-    def set_request_attrs(
-        self, name: str, defaluts: SimpleNamespace, keys: SimpleNamespace
-    ) -> None:
-        setattr(
-            self,
-            name,
-            SimpleNamespace(
-                **{
-                    key: getattr(defaluts, key)
-                    for key in keys.__dict__.values()
-                    if getattr(defaluts, key, None) is not None
-                }
-            ),
+    def set_request_attrs(self) -> None:
+
+        self.headers = SimpleNamespace(
+            **{
+                self.adapter.headers_keys.authorization: self.config.ENCODED_KEY,
+                self.adapter.headers_keys.accept: "application/json",
+            }
+        )
+
+        self.params = SimpleNamespace(
+            **{
+                self.adapter.params_keys.page: 1,
+                self.adapter.params_keys.per_page: 1000,
+                self.adapter.params_keys.return_type: "JSON",
+                self.adapter.params_keys.service_key: self.config.DECODED_KEY,
+            }
         )
 
     def request(self) -> None:
@@ -99,58 +78,57 @@ class GoPubDataClient:
         )
 
         print(
-            getattr(self.params, self.api.params_keys.page),
+            getattr(self.params, self.adapter.params_keys.page),
             "페이지 수집 -> ",
             response.status_code,
         )
 
         responsed_data = json.loads(response.text)
-        self.datas += responsed_data[self.api.response_keys.data]
+        self.datas += responsed_data[self.adapter.response_keys.data]
         self.recur_or_postprocess(
-            total_count=responsed_data[self.api.response_keys.total_count]
+            total_count=responsed_data[self.adapter.response_keys.total_count]
         )
 
     def recur_or_postprocess(self, total_count: int) -> None:
-        page = getattr(self.params, self.api.params_keys.page)
-        per_page = getattr(self.params, self.api.params_keys.per_page)
+        page = getattr(self.params, self.adapter.params_keys.page)
+        per_page = getattr(self.params, self.adapter.params_keys.per_page)
 
         if total_count > (per_page * page):
-            setattr(self.params, self.api.params_keys.page, page + 1)
+            setattr(self.params, self.adapter.params_keys.page, page + 1)
             self.request()
         else:
             print(total_count, "개 중 ", len(self.datas), "개 수집완료")
-            self.result = self.api.postprocess(self.datas)
+            self.result = self.adapter.postprocess(self.datas)
 
 
 class GoPubDataService:
     def __init__(
         self,
         config: GoPubDataConfig,
-        api_classes: List[GoPubDataApi],
+        adapters: List[GoPubDataApiAdapter],
         storage_path: str,
     ) -> None:
         self.config: GoPubDataConfig = config
         self.storage_path = storage_path
-        self.api_classes = api_classes
+        self.adapters = adapters
 
         self.initial_api_clients()
         self.set_svc_ids()
 
     def initial_api_clients(self) -> None:
-        for api_class in self.api_classes:
+        for adapter in self.adapters:
             setattr(
                 self,
-                api_class.endpoint + "_client",
+                adapter.endpoint + "_client",
                 GoPubDataClient(
                     config=self.config,
-                    api_class=api_class,
+                    adapter=adapter,
                 ),
             )
 
     def get_api_clients(self) -> List[GoPubDataClient]:
         api_clients = [
-            getattr(self, api_class.endpoint + "_client")
-            for api_class in self.api_classes
+            getattr(self, adapter.endpoint + "_client") for adapter in self.adapters
         ]
         return sorted(api_clients, key=lambda x: len(x.result.keys()), reverse=True)
 
@@ -170,5 +148,7 @@ class GoPubDataService:
         base, *others = self.get_api_clients()
         for key in base.result.keys():
             for other in others:
-                base.result[key].update(other.result.get(key, {other.api.endpoint: {}}))
+                base.result[key].update(
+                    other.result.get(key, {other.adapter.endpoint: {}})
+                )
         return base.result
